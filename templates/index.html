@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick Note | Modern Single-Page Application</title>
+  <meta name="description" content="A fast, responsive single-page note application demonstrating request-response flow with a Python backend and SQLite persistence." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>" />
+  <!-- Google Fonts for modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body data-theme="light">
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-content">
+      <div class="brand">
+        <span class="brand-icon">📝</span>
+        <div class="brand-text">
+          <h1>Quick Note</h1>
+          <span class="brand-tagline">Single-Page App &bull; Python + SQLite</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button id="toggle-inspector-btn" class="btn btn-secondary btn-sm" title="View Request-Response HTTP logs">
+          <span class="icon">⚡</span> <span class="hide-mobile">HTTP Inspector</span>
+        </button>
+        <button id="theme-toggle-btn" class="btn btn-icon" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+          <span class="theme-icon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="container main-layout">
+    <!-- Left Column / Composer Form -->
+    <section class="composer-section">
+      <div class="card composer-card">
+        <div class="card-header">
+          <h2>Create New Note</h2>
+          <span class="req-indicator" title="POST /api/notes">POST flow</span>
+        </div>
+
+        <form id="note-form" class="note-form">
+          <div class="form-group">
+            <label for="note-title">Title <span class="optional-label">(optional)</span></label>
+            <input
+              type="text"
+              id="note-title"
+              name="title"
+              class="form-control"
+              placeholder="e.g. Project brainstorm, Meeting recap..."
+              maxlength="100"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="note-content">Content <span class="required-star">*</span></label>
+            <textarea
+              id="note-content"
+              name="content"
+              class="form-control"
+              placeholder="Write your note here... (Markdown / bullet points supported)"
+              rows="5"
+              required
+            ></textarea>
+            <div class="form-helper">
+              <span id="char-count">0 characters</span>
+              <span class="shortcut-tip">Tip: Press Ctrl + Enter to quickly save</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="note-category">Category</label>
+              <select id="note-category" name="category" class="form-control form-select">
+                <option value="General">📌 General</option>
+                <option value="Work">💼 Work</option>
+                <option value="Personal">🌿 Personal</option>
+                <option value="Ideas">💡 Ideas</option>
+                <option value="Study">📚 Study</option>
+                <option value="To-Do">✅ To-Do</option>
+              </select>
+            </div>
+
+            <div class="form-group flex-1">
+              <label>Accent Color</label>
+              <div class="color-picker-group">
+                <input type="radio" name="color" id="c-white" value="#ffffff" checked class="color-radio" />
+                <label for="c-white" class="color-swatch swatch-white" title="Default White"></label>
+
+                <input type="radio" name="color" id="c-yellow" value="#fff9db" class="color-radio" />
+                <label for="c-yellow" class="color-swatch swatch-yellow" title="Sunny Yellow"></label>
+
+                <input type="radio" name="color" id="c-blue" value="#e7f5ff" class="color-radio" />
+                <label for="c-blue" class="color-swatch swatch-blue" title="Sky Blue"></label>
+
+                <input type="radio" name="color" id="c-green" value="#ebfbee" class="color-radio" />
+                <label for="c-green" class="color-swatch swatch-green" title="Mint Green"></label>
+
+                <input type="radio" name="color" id="c-purple" value="#f3f0ff" class="color-radio" />
+                <label for="c-purple" class="color-swatch swatch-purple" title="Lilac Purple"></label>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" id="save-note-btn" class="btn btn-primary btn-block">
+            <span class="btn-spinner" style="display: none;"></span>
+            <span class="btn-text">Save Note</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Quick Concept Box for Educational / Portfolio Showcase -->
+      <div class="card concept-card">
+        <h3>💡 How this works</h3>
+        <ol class="concept-steps">
+          <li><strong>Client Action:</strong> Form submission triggers client-side JavaScript.</li>
+          <li><strong>HTTP Request:</strong> A JSON payload is dispatched via <code>fetch('/api/notes', {method: 'POST'})</code>.</li>
+          <li><strong>Server Processing:</strong> Python (Flask) validates the data and commits it to SQLite.</li>
+          <li><strong>HTTP Response:</strong> Server returns a <code>201 Created</code> status and the new record.</li>
+          <li><strong>DOM Update:</strong> The SPA updates the notes board seamlessly without a full-page reload!</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Right Column / Notes Board -->
+    <section class="board-section">
+      <!-- Controls Toolbar -->
+      <div class="board-toolbar card">
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            id="search-input"
+            class="search-control"
+            placeholder="Search notes by keyword..."
+          />
+          <button id="clear-search-btn" class="btn-clear" style="display: none;" title="Clear search">&times;</button>
+        </div>
+
+        <div class="filter-pills" id="category-filter-pills">
+          <button class="pill active" data-category="all">All (<span id="total-count-badge">0</span>)</button>
+          <button class="pill" data-category="General">📌 General</button>
+          <button class="pill" data-category="Work">💼 Work</button>
+          <button class="pill" data-category="Personal">🌿 Personal</button>
+          <button class="pill" data-category="Ideas">💡 Ideas</button>
+          <button class="pill" data-category="Study">📚 Study</button>
+          <button class="pill" data-category="To-Do">✅ To-Do</button>
+        </div>
+      </div>
+
+      <!-- Notes Grid Container -->
+      <div id="notes-container" class="notes-grid">
+        <!-- Dynamic note cards injected here -->
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading-state" class="state-placeholder" style="display: none;">
+        <div class="spinner-large"></div>
+        <p>Fetching notes from Python server...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="state-placeholder" style="display: none;">
+        <div class="empty-icon">📝</div>
+        <h3>No notes found</h3>
+        <p>You haven't added any notes yet, or your search query yielded zero results.</p>
+        <button id="focus-composer-btn" class="btn btn-secondary btn-sm">Write your first note</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Edit Note Modal -->
+  <div id="edit-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Edit Note</h3>
+        <button id="close-modal-btn" class="modal-close">&times;</button>
+      </div>
+      <form id="edit-form" class="modal-body">
+        <input type="hidden" id="edit-note-id" />
+        <div class="form-group">
+          <label for="edit-note-title">Title</label>
+          <input type="text" id="edit-note-title" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label for="edit-note-content">Content <span class="required-star">*</span></label>
+          <textarea id="edit-note-content" class="form-control" rows="5" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="edit-note-category">Category</label>
+            <select id="edit-note-category" class="form-control form-select">
+              <option value="General">📌 General</option>
+              <option value="Work">💼 Work</option>
+              <option value="Personal">🌿 Personal</option>
+              <option value="Ideas">💡 Ideas</option>
+              <option value="Study">📚 Study</option>
+              <option value="To-Do">✅ To-Do</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label>Accent Color</label>
+            <div class="color-picker-group">
+              <input type="radio" name="edit-color" id="ec-white" value="#ffffff" class="color-radio" />
+              <label for="ec-white" class="color-swatch swatch-white"></label>
+
+              <input type="radio" name="edit-color" id="ec-yellow" value="#fff9db" class="color-radio" />
+              <label for="ec-yellow" class="color-swatch swatch-yellow"></label>
+
+              <input type="radio" name="edit-color" id="ec-blue" value="#e7f5ff" class="color-radio" />
+              <label for="ec-blue" class="color-swatch swatch-blue"></label>
+
+              <input type="radio" name="edit-color" id="ec-green" value="#ebfbee" class="color-radio" />
+              <label for="ec-green" class="color-swatch swatch-green"></label>
+
+              <input type="radio" name="edit-color" id="ec-purple" value="#f3f0ff" class="color-radio" />
+              <label for="ec-purple" class="color-swatch swatch-purple"></label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="cancel-edit-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="save-edit-btn" class="btn btn-primary">Save Changes (PUT)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- HTTP Request-Response Inspector Drawer -->
+  <aside id="inspector-drawer" class="inspector-drawer">
+    <div class="inspector-header">
+      <div class="inspector-title">
+        <span class="icon">⚡</span>
+        <h3>Request-Response Live Inspector</h3>
+      </div>
+      <div class="inspector-actions">
+        <button id="clear-inspector-btn" class="btn btn-xs btn-outline" title="Clear logs">Clear</button>
+        <button id="close-inspector-btn" class="btn-close" title="Close drawer">&times;</button>
+      </div>
+    </div>
+    <div class="inspector-body">
+      <p class="inspector-hint">Every client-server exchange is logged below in real-time:</p>
+      <div id="inspector-logs" class="inspector-logs">
+        <div class="inspector-empty">Waiting for HTTP activity...</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
